@@ -52,12 +52,28 @@ La arquitectura de carpetas refleja la separación estricta de responsabilidades
 
 ```text
 src/
-├── app.module.ts                  # Orquestador principal
-├── main.ts                        # Bootstrap y configuración global de Pipes
-├── common/                        # Recursos compartidos (Guards globales, Interceptors)
-├── modules/
-│   ├── auth/                      # Autenticación M2M (Validación de API Keys)
-│   ├── audit/                     # Lógica de la caja negra (Registro inmutable)
-│   ├── environment/               # Gestión de aislamiento lógico
-│   └── secrets/                   # Bóveda de cifrado y descifrado
-└── observe/                       # Configuración de instrumentación y telemetría
+├── app.controller.spec.ts         # Pruebas unitarias del controlador base
+├── app.controller.ts              # Controlador base de la aplicación
+├── app.module.ts                  # Módulo raíz (orquestador de NestJS)
+├── app.service.ts                 # Servicio base de la aplicación
+├── main.ts                        # Punto de entrada / Bootstrap de NestJS
+│
+├── auth/                          # Módulo de Autenticación (Verificación de tokens)
+│   ├── auth.module.ts
+│   ├── auth.guard.ts              # El "portero" que revisa las llaves
+│   └── auth.service.ts
+│
+├── audit/                         # Módulo de Auditoría ("La Caja Negra")
+│   ├── audit.module.ts
+│   ├── audit.controller.ts
+│   └── audit.service.ts
+│
+├── environments/                  # Módulo de Entornos (Desarrollo, QA, Producción)
+│   ├── environments.module.ts
+│   ├── environments.controller.ts
+│   └── environments.service.ts
+│
+└── secrets/                       # Módulo de Seguridad ("La Bóveda")
+    ├── secrets.module.ts
+    ├── secrets.controller.ts
+    └── encryption.service.ts      # El motor matemático que cifra los datos                    # Configuración de instrumentación y telemetría
