@@ -13,21 +13,28 @@
  * ============================================================================
  */
 
-import { Entity } from 'typeorm';
-
-// TODO: Importar PrimaryGeneratedColumn, Column, CreateDateColumn y OneToMany de 'typeorm'
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('environments')
 export class Environment {
-    // TODO: Crear columna 'id' como PrimaryGeneratedColumn tipo 'uuid'.
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    // TODO: Crear columna 'name'. Debe ser tipo string, única (unique: true) y no nula. 
     // Ej: 'PRODUCCION', 'DESARROLLO', 'QA'.
+    @Column({ type: 'varchar', length: 100, unique: true, nullable: false })
+    name: string;
 
-    // TODO: Crear columna 'description'. Debe ser tipo string y opcional (nullable: true).
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    description: string | null;
 
-    // TODO: (Opcional - Relaciones) Crear decorador @OneToMany apuntando a la entidad Secret.
-    // Esto servirá para saber cuántos secretos le pertenecen a este entorno.
+    // TODO: (Relaciones) Agregar @OneToMany(() => Secret, (secret) => secret.environment)
+    // cuando la entidad Secret tenga su @ManyToOne 'environment' implementado.
 
-    // TODO: Crear columna 'createdAt' usando el decorador @CreateDateColumn() para auditoría básica.
+    @CreateDateColumn({ name: 'created_at' })
+    createdAt: Date;
 }
