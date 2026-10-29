@@ -51,29 +51,54 @@ El proyecto está construido bajo los principios de Arquitectura Limpia (Clean A
 La arquitectura de carpetas refleja la separación estricta de responsabilidades (Separation of Concerns) del MVP:
 
 ```text
-src/
-├── app.controller.spec.ts         # Pruebas unitarias del controlador base
-├── app.controller.ts              # Controlador base de la aplicación
-├── app.module.ts                  # Módulo raíz (orquestador de NestJS)
-├── app.service.ts                 # Servicio base de la aplicación
-├── main.ts                        # Punto de entrada / Bootstrap de NestJS
-│
-├── auth/                          # Módulo de Autenticación (Verificación de tokens)
-│   ├── auth.module.ts
-│   ├── auth.guard.ts              # El "portero" que revisa las llaves
-│   └── auth.service.ts
-│
-├── audit/                         # Módulo de Auditoría ("La Caja Negra")
-│   ├── audit.module.ts
-│   ├── audit.controller.ts
-│   └── audit.service.ts
-│
-├── environments/                  # Módulo de Entornos (Desarrollo, QA, Producción)
-│   ├── environments.module.ts
-│   ├── environments.controller.ts
-│   └── environments.service.ts
-│
-└── secrets/                       # Módulo de Seguridad ("La Bóveda")
-    ├── secrets.module.ts
-    ├── secrets.controller.ts
-    └── encryption.service.ts      # El motor matemático que cifra los datos                    # Configuración de instrumentación y telemetría
+
+
+
+
+Posible estructura final
+se marcara con * a modulos y carpeta ya creadas
+
+src/                                              *
+├── app.controller.spec.ts                        *                          # Pruebas unitarias del controlador base
+├── app.controller.ts                             *                           # Controlador base de la aplicación
+├── app.module.ts                                 *                         # Módulo raíz (orquestador de NestJS)
+├── app.service.ts                                *                         # Servicio base de la aplicación
+├── main.ts                                       *                         # Punto de entrada / Bootstrap de NestJS
+│021                                        
+├── auth/                                         *                          # Módulo de Autenticación (Verificación de tokens)
+│   ├── auth.module.ts                            *            
+│   ├── auth.guard.ts                                                        # El "portero" que revisa las llaves
+│   └── auth.service.ts                                     
+│                                       
+├── audit/                                        *                          # Módulo de Auditoría ("La Caja Negra")
+│   ├── audit.module.ts                                     
+│   ├── audit.controller.ts                                     
+│   └── audit.service.ts                          *
+|   └── audit.log.entity.ts                       *                          # La tabla de la Caja Negra 
+│                                        
+├── environments/                                 *                          # Módulo de Entornos (Desarrollo, QA, Producción)
+│   ├── environments.module.ts                                      
+│   ├── environments.controller.ts                                      
+│   └── environments.service.ts                               
+|   └── environment.entity.ts                     *                           #La tabla de Entornos logicos de la Bóveda 
+│                                       
+└── secrets/                                      *                           # Módulo de Seguridad ("La Bóveda")
+    ├── secrets.module.ts                                       
+    ├── secrets.controller.ts                                       
+    ├── encryption.service.ts                                                # El motor matemático que cifra los datos   
+    └── secret.entity.ts                          *                          # La tabla de contraseñas/bóvedas
+                                                 
+
+
+
+
+
+
+NOTAS TEMPORALES 
+
+- El subrayado en rojo en 'typeorm' 
+se debe a que el paquete TypeORM no está instalado en las dependencias de tu proyecto.
+
+Para instalarlo se puede usar el comando: 
+
+npm install @nestjs/typeorm typeorm pg
