@@ -88,3 +88,17 @@ src/                                              *
     ├── encryption.service.ts                                                # El motor matemático que cifra los datos   
     └── secret.entity.ts                          *                          # La tabla de contraseñas/bóvedas
                                                  
+
+
+
+
+
+
+NOTAS TEMPORALES 
+
+- El subrayado en rojo en 'typeorm' 
+se debe a que el paquete TypeORM no está instalado en las dependencias de tu proyecto.
+
+Para instalarlo se puede usar el comando: 
+
+npm install @nestjs/typeorm typeorm pg
