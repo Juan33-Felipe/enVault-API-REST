@@ -14,26 +14,44 @@
  * ============================================================================
  */
 
-import { Entity } from 'typeorm';
+import {
+    Column,
+    CreateDateColumn,
+    Entity,
+    JoinColumn,
+    ManyToOne,
+    PrimaryGeneratedColumn,
+    Unique,
+    UpdateDateColumn,
+} from 'typeorm';
+import { Environment } from '../environments/environmentEntity';
 
-// TODO: Importar PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn y ManyToOne de 'typeorm'
-// TODO: Importar la clase Environment del archivo environment.entity.ts
-
+// Un mismo nombre de llave puede existir en varios entornos, pero no repetirse dentro del mismo.
+@Unique('UQ_secrets_key_name_environment', ['keyName', 'environment'])
 @Entity('secrets')
 export class Secret {
-    // TODO: Crear columna 'id' como PrimaryGeneratedColumn tipo 'uuid'.
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    // TODO: Crear columna 'keyName'. Debe ser string y no nula.
-    // Representa el nombre de la variable (Ej: 'DB_PASSWORD', 'OPENAI_PROMPT_V1').
+    // Ej: 'DB_PASSWORD', 'OPENAI_PROMPT_V1'.
+    @Column({ name: 'key_name', type: 'varchar', length: 150, nullable: false })
+    keyName: string;
 
-    // TODO: Crear columna 'encryptedValue'. Debe ser string (o text para cadenas muy largas) y no nula.
-    // REGLA DE NEGOCIO: Aquí NUNCA se guarda texto plano, solo el hash generado por EncryptionService.
+    // REGLA DE NEGOCIO: Aquí NUNCA se guarda texto plano, solo el valor generado por EncryptionService.
+    @Column({ name: 'encrypted_value', type: 'text', nullable: false })
+    encryptedValue: string;
 
-    // TODO: Crear relación 'environment' usando el decorador @ManyToOne apuntando a la entidad Environment.
     // Todo secreto DEBE pertenecer a un entorno obligatoriamente.
+    // TODO: (Relaciones) Agregar el lado inverso (secret) => secret.environment
+    // cuando Environment tenga su @OneToMany 'secrets' implementado.
+    @ManyToOne(() => Environment, { nullable: false, onDelete: 'RESTRICT' })
+    @JoinColumn({ name: 'environment_id' })
+    environment: Environment;
 
-    // TODO: Crear columna 'createdAt' usando @CreateDateColumn().
+    @CreateDateColumn({ name: 'created_at' })
+    createdAt: Date;
 
-    // TODO: Crear columna 'updatedAt' usando @UpdateDateColumn(). 
     // Vital para saber cuándo fue la última vez que alguien rotó o cambió esta contraseña.
+    @UpdateDateColumn({ name: 'updated_at' })
+    updatedAt: Date;
 }
