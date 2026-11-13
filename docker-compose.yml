@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: envault
+      POSTGRES_PASSWORD: envault
+      POSTGRES_DB: envault
+    ports:
+      - '5432:5432'
+    volumes:
+      - envault_data:/var/lib/postgresql/data
+
+volumes:
+  envault_data:
