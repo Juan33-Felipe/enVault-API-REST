@@ -3,7 +3,6 @@ import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { NodesModule } from './nodes/nodes.module';
 import { EnvironmentsModule } from './environments/environments.module';
 import { SecretsModule } from './secrets/secrets.module';
 
@@ -19,7 +18,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       serviceId: 'enVault-API',
     }),
     AuthModule,
-    NodesModule,
     EnvironmentsModule,
     SecretsModule,
   ],
