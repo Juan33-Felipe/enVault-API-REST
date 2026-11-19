@@ -1,10 +1,5 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { CreateEnvironmentDto } from './dto/create-environment.dto';
 import { EnvironmentsService } from './environments.service';
 
 @Controller('environments')
@@ -12,14 +7,10 @@ export class EnvironmentsController {
   constructor(private readonly environmentsService: EnvironmentsService) {}
 
   @Post()
-  async create(@Body() body: { name?: string; description?: string }) {
-    if (typeof body?.name !== 'string') {
-      throw new BadRequestException('El nombre es obligatorio');
-    }
-
+  async create(@Body() dto: CreateEnvironmentDto) {
     const { environment, apiKey } = await this.environmentsService.create(
-      body.name,
-      body.description,
+      dto.name,
+      dto.description,
     );
 
     return {
