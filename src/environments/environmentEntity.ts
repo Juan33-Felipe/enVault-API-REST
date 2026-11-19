@@ -2,39 +2,44 @@
  * ============================================================================
  * 🌍 ENTIDAD: ENVIRONMENTS (LOS ENTORNOS)
  * ============================================================================
- * Hola equipo. Este archivo representa la tabla de Entornos en nuestra base de datos.
- * Su propósito principal es mantener el orden y el aislamiento en nuestra API.
- * 
- * Aquí vamos a definir las "secciones" de nuestra biblioteca (Ej: Desarrollo, 
- * Pruebas, Producción). Es vital porque nos asegurará que una llave de pruebas 
- * nunca se mezcle con una llave de los clientes reales.
- * 
- * Sigan los TODOs a continuación para construir la estructura de la tabla con TypeORM.
+ * Representa la tabla de Entornos (Ej: DESARROLLO, QA, PRODUCCION).
+ * Cada entorno tiene su propia API key, y esa key decide qué secretos puede
+ * ver un backend: es la base del aislamiento.
+ *
+ * Solo se guarda el hash SHA-256 de la API key, nunca la key en claro.
  * ============================================================================
  */
 
 import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity('environments')
 export class Environment {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    // Ej: 'PRODUCCION', 'DESARROLLO', 'QA'.
-    @Column({ type: 'varchar', length: 100, unique: true, nullable: false })
-    name: string;
+  // Ej: 'PRODUCCION', 'DESARROLLO', 'QA'.
+  @Column({ type: 'varchar', length: 100, unique: true, nullable: false })
+  name: string;
 
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    description: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  description: string | null;
 
-    // TODO: (Relaciones) Agregar @OneToMany(() => Secret, (secret) => secret.environment)
-    // cuando la entidad Secret tenga su @ManyToOne 'environment' implementado.
+  // Hash SHA-256 en hex (64 caracteres) de la API key del entorno.
+  // select: false evita que aparezca en los find() normales.
+  @Column({
+    name: 'api_key_hash',
+    type: 'varchar',
+    length: 64,
+    unique: true,
+    select: false,
+  })
+  apiKeyHash: string;
 
-    @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 }
