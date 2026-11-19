@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
+import { EnvironmentsModule } from '../environments/environments.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  // Declaramos los servicios y guards que le pertenecen a este módulo
+  imports: [EnvironmentsModule, AuditModule],
   providers: [AuthService, AuthGuard],
-  
-  // Exportamos el Guard para que el controlador de Secrets lo pueda usar para proteger sus rutas
-  exports: [AuthService, AuthGuard], 
+  exports: [AuthService, AuthGuard],
 })
 export class AuthModule {}
