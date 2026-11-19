@@ -12,11 +12,15 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
+import { CreateSecretDto } from './dto/create-secret.dto';
+import { KeyNameParamDto } from './dto/key-name-param.dto';
+import { UpdateSecretDto } from './dto/update-secret.dto';
 import { SecretsService } from './secrets.service';
 
 /**
  * Rutas de la Bóveda. Todas exigen el header `x-api-key` (AuthGuard).
  * El entorno SIEMPRE sale de `req.environment`, nunca del body, la URL ni otro header.
+ * Los DTOs validan la entrada (ValidationPipe global) antes de llegar al servicio.
  */
 @Controller('secrets')
 @UseGuards(AuthGuard)
@@ -24,14 +28,11 @@ export class SecretsController {
   constructor(private readonly secretsService: SecretsService) {}
 
   @Post()
-  create(
-    @Req() req: AuthenticatedRequest,
-    @Body() body: { keyName?: unknown; value?: unknown },
-  ) {
+  create(@Req() req: AuthenticatedRequest, @Body() dto: CreateSecretDto) {
     return this.secretsService.create(
       req.environment,
-      body?.keyName,
-      body?.value,
+      dto.keyName,
+      dto.value,
       req.ip,
     );
   }
@@ -42,27 +43,27 @@ export class SecretsController {
   }
 
   @Get(':keyName')
-  findOne(@Req() req: AuthenticatedRequest, @Param('keyName') keyName: string) {
-    return this.secretsService.findOne(req.environment, keyName, req.ip);
+  findOne(@Req() req: AuthenticatedRequest, @Param() params: KeyNameParamDto) {
+    return this.secretsService.findOne(req.environment, params.keyName, req.ip);
   }
 
   @Put(':keyName')
   update(
     @Req() req: AuthenticatedRequest,
-    @Param('keyName') keyName: string,
-    @Body() body: { value?: unknown },
+    @Param() params: KeyNameParamDto,
+    @Body() dto: UpdateSecretDto,
   ) {
     return this.secretsService.update(
       req.environment,
-      keyName,
-      body?.value,
+      params.keyName,
+      dto.value,
       req.ip,
     );
   }
 
   @Delete(':keyName')
   @HttpCode(204)
-  remove(@Req() req: AuthenticatedRequest, @Param('keyName') keyName: string) {
-    return this.secretsService.remove(req.environment, keyName, req.ip);
+  remove(@Req() req: AuthenticatedRequest, @Param() params: KeyNameParamDto) {
+    return this.secretsService.remove(req.environment, params.keyName, req.ip);
   }
 }
