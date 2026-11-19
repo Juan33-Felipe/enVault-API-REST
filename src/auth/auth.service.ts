@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { Environment } from '../environments/environmentEntity';
+import { EnvironmentsService } from '../environments/environments.service';
 
 @Injectable()
 export class AuthService {
-  // TODO: Implementar método para validar las API Keys o tokens M2M.
-  // Ej: validateApiKey(apiKey: string): boolean
+  constructor(private readonly environmentsService: EnvironmentsService) {}
+
+  validateApiKey(apiKey: string): Promise<Environment | null> {
+    if (!apiKey) return Promise.resolve(null);
+    return this.environmentsService.findByApiKey(apiKey);
+  }
 }
