@@ -1,0 +1,1535 @@
+{
+  "info": {
+    "name": "enVault API — prueba completa",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Prueba de punta a punta de enVault. Ejecuta la colección completa con Run collection, sin cambiar el orden. Cada ejecución crea entornos nuevos con un sufijo único, así que se puede repetir sin vaciar la base de datos."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "prodName",
+      "value": ""
+    },
+    {
+      "key": "qaName",
+      "value": ""
+    },
+    {
+      "key": "apiKeyProd",
+      "value": ""
+    },
+    {
+      "key": "apiKeyQa",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Entornos (Environments)",
+      "item": [
+        {
+          "name": "Crear entorno PRODUCCION",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = Date.now().toString(36).toUpperCase();",
+                  "pm.collectionVariables.set('runId', id);",
+                  "pm.collectionVariables.set('prodName', 'PRODUCCION_' + id);",
+                  "pm.collectionVariables.set('qaName', 'QA_' + id);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('Devuelve una apiKey env_…', () => pm.expect(/^env_[0-9a-f]{48}$/.test(b.apiKey)).to.eql(true));",
+                  "pm.test('El nombre se guarda en mayúsculas', () => pm.expect(b.name).to.eql(pm.collectionVariables.get('prodName').toUpperCase()));",
+                  "pm.test('No expone el hash de la apiKey', () => pm.expect(b).to.not.have.property('apiKeyHash'));",
+                  "pm.collectionVariables.set('apiKeyProd', b.apiKey);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "environments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{prodName}}\",\n  \"description\": \"Entorno de producción\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear entorno QA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "pm.collectionVariables.set('apiKeyQa', pm.response.json().apiKey);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "environments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{qaName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Listar entornos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "const list = pm.response.json();",
+                  "pm.test('Es una lista', () => pm.expect(list).to.be.an('array'));",
+                  "pm.test('Incluye los dos entornos creados', () => { const names = list.map((e) => e.name); pm.expect(names).to.include(pm.collectionVariables.get('prodName')); pm.expect(names).to.include(pm.collectionVariables.get('qaName')); });",
+                  "pm.test('Ningún entorno expone su apiKey ni su hash', () => list.forEach((e) => { pm.expect(e).to.not.have.property('apiKey'); pm.expect(e).to.not.have.property('apiKeyHash'); }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "environments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Entorno duplicado → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 409', () => pm.expect(pm.response.code).to.eql(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "environments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{prodName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Entorno sin name → 400 (DTO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "environments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Entorno con campo extra → 400 (DTO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "environments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"otro\",\n  \"apiKeyHash\": \"hack\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Seguridad (AuthGuard)",
+      "item": [
+        {
+          "name": "Sin x-api-key → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 401', () => pm.expect(pm.response.code).to.eql(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "API key falsa → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 401', () => pm.expect(pm.response.code).to.eql(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "env_clave_falsa"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sin API key el guard actúa antes que la validación → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 401', () => pm.expect(pm.response.code).to.eql(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Bóveda: CRUD en PRODUCCION",
+      "item": [
+        {
+          "name": "Crear secreto DB_PASSWORD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('Devuelve id, keyName y createdAt', () => { pm.expect(b).to.have.property('id'); pm.expect(b.keyName).to.eql('DB_PASSWORD'); pm.expect(b).to.have.property('createdAt'); });",
+                  "pm.test('No devuelve el valor del secreto', () => { pm.expect(b).to.not.have.property('value'); pm.expect(b).to.not.have.property('encryptedValue'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"DB_PASSWORD\",\n  \"value\": \"superSecreta123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear secreto con minúsculas (se normaliza a API_TOKEN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+                  "pm.test('keyName normalizado', () => pm.expect(pm.response.json().keyName).to.eql('API_TOKEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \" api_token \",\n  \"value\": \"tok_123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Leer DB_PASSWORD (valor descifrado)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Devuelve el valor original descifrado', () => pm.expect(pm.response.json()).to.eql({ keyName: 'DB_PASSWORD', value: 'superSecreta123' }));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leer con el nombre en minúsculas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Encuentra DB_PASSWORD', () => pm.expect(pm.response.json().keyName).to.eql('DB_PASSWORD'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/db_password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "db_password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar secretos de PRODUCCION",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "const list = pm.response.json();",
+                  "pm.test('Hay 2 secretos descifrados', () => { pm.expect(list).to.have.lengthOf(2); pm.expect(list).to.eql([{ keyName: 'API_TOKEN', value: 'tok_123456' }, { keyName: 'DB_PASSWORD', value: 'superSecreta123' }]); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rotar DB_PASSWORD (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('Devuelve keyName y updatedAt, sin el valor', () => { pm.expect(b.keyName).to.eql('DB_PASSWORD'); pm.expect(b).to.have.property('updatedAt'); pm.expect(b).to.not.have.property('value'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"nuevaClave456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Leer DB_PASSWORD después de rotar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Devuelve el valor nuevo', () => pm.expect(pm.response.json().value).to.eql('nuevaClave456'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Validaciones y errores",
+      "item": [
+        {
+          "name": "Secreto duplicado → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 409', () => pm.expect(pm.response.code).to.eql(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"DB_PASSWORD\",\n  \"value\": \"otro\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "keyName con caracteres inválidos → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"mal-nombre\",\n  \"value\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "keyName de más de 150 caracteres → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n  \"value\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Sin value → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"SIN_VALOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "value vacío → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"VACIO\",\n  \"value\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Intentar elegir el entorno desde el body → 400 (DTO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"HACK\",\n  \"value\": \"x\",\n  \"environment\": \"QA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": ":keyName inválido en la URL → 400 (DTO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 400', () => pm.expect(pm.response.code).to.eql(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/no-valido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "no-valido"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leer un secreto que no existe → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/NO_EXISTE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "NO_EXISTE"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rotar un secreto que no existe → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/NO_EXISTE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "NO_EXISTE"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Aislamiento entre entornos (QA)",
+      "item": [
+        {
+          "name": "QA no ve los secretos de PRODUCCION (lista vacía)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Lista vacía', () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "QA no puede leer DB_PASSWORD de PRODUCCION → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "QA no puede rotar DB_PASSWORD de PRODUCCION → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"hackeado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "QA no puede borrar DB_PASSWORD de PRODUCCION → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "QA crea su propio DB_PASSWORD (mismo nombre, otro entorno)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 201', () => pm.expect(pm.response.code).to.eql(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keyName\": \"DB_PASSWORD\",\n  \"value\": \"claveDeQA\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cada entorno lee su propio valor (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('QA ve su valor', () => pm.expect(pm.response.json().value).to.eql('claveDeQA'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cada entorno lee su propio valor (PRODUCCION)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('PRODUCCION mantiene su valor', () => pm.expect(pm.response.json().value).to.eql('nuevaClave456'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Limpieza (DELETE)",
+      "item": [
+        {
+          "name": "Borrar DB_PASSWORD de PRODUCCION → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 204', () => pm.expect(pm.response.code).to.eql(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Borrar API_TOKEN de PRODUCCION → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 204', () => pm.expect(pm.response.code).to.eql(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/API_TOKEN",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "API_TOKEN"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leer un secreto borrado → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 404', () => pm.expect(pm.response.code).to.eql(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "QA sigue teniendo su DB_PASSWORD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Borrar DB_PASSWORD de QA → 204",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 204', () => pm.expect(pm.response.code).to.eql(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyQa}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets/DB_PASSWORD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets",
+                "DB_PASSWORD"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PRODUCCION queda vacío",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Responde HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('Lista vacía', () => pm.expect(pm.response.json()).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKeyProd}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/secrets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "secrets"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
