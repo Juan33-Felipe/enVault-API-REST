@@ -1,25 +1,39 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { AuditService } from '../audit/AuditService';
+import { AuditAction, AuditStatus } from '../audit/auditLogEntity';
+import { AuthenticatedRequest } from './authenticated-request';
+import { AuthService } from './auth.service';
 
-/**
- * ============================================================================
- * Este archivo interceptará las peticiones antes de que lleguen a la bóveda.
- * Su trabajo es revisar si la petición HTTP trae un token válido en los Headers.
- * ============================================================================
- */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  
-  // TODO: Inyectar el AuthService en el constructor para usar su lógica de validación
+  constructor(
+    private readonly authService: AuthService,
+    private readonly auditService: AuditService,
+  ) {}
 
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
-    
-    // TODO: Extraer la "request" del ExecutionContext
-    // TODO: Buscar el token en request.headers.authorization
-    // TODO: Validar el token. Si es falso, NestJS arrojará un 403 Forbidden automáticamente.
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const header = request.headers['x-api-key'];
+    const apiKey = typeof header === 'string' ? header : '';
+    const environment = await this.authService.validateApiKey(apiKey);
 
-    return true; // TODO: Temporalmente en true para no bloquear el desarrollo inicial.
+    if (!environment) {
+      await this.auditService.log({
+        action: AuditAction.AUTH_FAILED,
+        actor: 'anonymous',
+        status: AuditStatus.FAILED,
+        target: request.originalUrl,
+        ipAddress: request.ip,
+      });
+      throw new UnauthorizedException('API key inválida o ausente');
+    }
+
+    request.environment = environment;
+    return true;
   }
 }
