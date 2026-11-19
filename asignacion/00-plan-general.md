@@ -26,7 +26,7 @@ Una API REST en NestJS + TypeORM + PostgreSQL donde:
 - **No hay tabla de clientes.** La API key vive en el propio entorno: columna `api_key_hash` en `environments`.
 - **La API key se guarda hasheada (SHA-256)**, nunca en texto plano. Al crear el entorno se devuelve la key en claro una única vez.
 - **Los secretos se cifran (AES-256-GCM), NO se hashean.** Un hash no se puede revertir y la bóveda necesita devolver el valor original.
-- **Sin DTOs ni `class-validator`** por ahora: validaciones simples con `if` + `BadRequestException`.
+- **DTOs con `class-validator`** y un `ValidationPipe` global en `main.ts` (cambio acordado tras revisar los criterios del proyecto). Los servicios conservan sus validaciones como segunda capa de defensa.
 - **`synchronize: true`** en TypeORM: las tablas se crean solas, sin migraciones.
 - **Crear entornos queda abierto** (sin admin) para la demo. Se puede proteger después si sobra tiempo.
 - **No renombrar archivos existentes** (`auditLogEntity.ts`, `AuditService.ts`, `environmentEntity.ts`, `secretEntity.ts`). Renombrar en paralelo genera conflictos; se hará al final si hay tiempo.
