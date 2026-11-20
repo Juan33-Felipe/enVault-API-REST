@@ -6,7 +6,7 @@
 
 ## Video explicativo
 
-[Ver video explicativo en Google Drive](https://drive.google.com/file/d/12mhGZ28UDW06Ah-vUNXXTnzJYNv1aZO5/view?usp=sharing)
+https://drive.google.com/file/d/12mhGZ28UDW06Ah-vUNXXTnzJYNv1aZO5/view?usp=sharing
 
 ## Contexto del proyecto
 
