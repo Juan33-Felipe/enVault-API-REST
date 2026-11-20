@@ -2,7 +2,11 @@
 
 > Plataforma API RESTful especializada en la centralización, protección y auditoría de variables de entorno y credenciales de software.
 
-[Contexto](#contexto-del-proyecto) · [Instalación](#instalación) · [Endpoints](#endpoints) · [Demostración en Postman](#demostración-en-postman) · [Arquitectura](#arquitectura)
+[Video explicativo](#video-explicativo) · [Contexto](#contexto-del-proyecto) · [Instalación](#instalación) · [Endpoints](#endpoints) · [Demostración en Postman](#demostración-en-postman) · [Arquitectura](#arquitectura)
+
+## Video explicativo
+
+[Ver video explicativo en Google Drive](https://drive.google.com/file/d/12mhGZ28UDW06Ah-vUNXXTnzJYNv1aZO5/view?usp=sharing)
 
 ## Contexto del proyecto
 
